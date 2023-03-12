@@ -1,17 +1,6 @@
-const express = require("express");
 const axios = require('axios');
 const cheerio = require('cheerio');
-var cors = require('cors')
-
-const app = express();
-import { Request, Response } from "express";
-
-
-app.use(cors());
-// Encoders
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-// app.use(express.static(path.join(__dirname, 'public')));
+const inquirer = require('inquirer');
 
 
 // Normalize text
@@ -95,7 +84,7 @@ const parsePage = async (url: string) => {
 }
 
 const validateUrl = (url: string) => {
-  const httpsRemoved = url.replace('https://', '')
+  const httpsRemoved = url.replace('https://', '');
   const [domain, a, show, id] = httpsRemoved.split('/');
   const numId = Number(id);
   if (domain === 'krisha.kz' && a === 'a' && show === 'show' && typeof (numId) === 'number') {
@@ -105,26 +94,37 @@ const validateUrl = (url: string) => {
   }
 }
 
-// Get route requires url
-app.post('/parsePage', async (req: Request, res: Response) => {
-  const { url } = req.body;
-  let flatData: unknown;
-  const validUrl = validateUrl(url);
-  try {
-    if (!validUrl) {
-      throw new Error('Invalid URL');
+
+
+const runPrompt = () => {
+  return inquirer.prompt({
+    type: 'input',
+    name: 'url',
+    message: "Enter url eg https://krisha.kz/a/show/678918866 or type exit",
+  },).then((answers: any) => {
+    const { url } = answers;
+    if (url !== 'exit') {
+      const validUrl = validateUrl(url);
+      try {
+        if (!validUrl) {
+          throw new Error('Invalid url');
+        }
+        parsePage(url).then((flatData: IFlatData) => {
+          console.dir(flatData);
+          runPrompt();
+        });
+      } catch (e) {
+        console.dir(e);
+        runPrompt();
+      }
     }
-    flatData = await parsePage(url);
-  } catch (e: any) {
-    res.status(500).json({ message: e.message });
-  }
-  res.status(200).json({ flatData });
-});
-
-
-const startApp = async () => {
-  app.listen(8080);
-  console.log('Listening on port 8080');
+  }).catch((error: any) => {
+    if (error.isTtyError) {
+      console.dir(error);
+    } else {
+      console.dir(error);
+    }
+  });
 }
 
-startApp();
+runPrompt();
