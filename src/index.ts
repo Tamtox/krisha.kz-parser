@@ -3,14 +3,8 @@ const _ = require('lodash');
 const axios = require('axios');
 const cheerio = require('cheerio');
 
-
 const app = express();
 import { Request, Response } from "express";
-
-app.get('/parsePage', (req: Request, res: Response) => {
-  const { url } = req.body;
-  console.log(url);
-});
 
 // Normalize text
 const normalizeText = (str: string) => {
@@ -24,16 +18,21 @@ const normalizeText = (str: string) => {
 
 interface IFlatData {
   area: string;
-  description: string;
+  ceiling: string;
+  city: string;
+  isFormerDorm: string;
   floor: string;
   imageUrls: string[];
+  materials: string;
   price: string;
   rooms: string;
   url: string;
+  year: string;
 }
 
 // Html parser
 const parsePage = async (url: string) => {
+  // Get html page
   const pageRes = await axios.request({
     url,
     method: 'GET',
@@ -53,15 +52,54 @@ const parsePage = async (url: string) => {
     return $(el).attr('data-photo-url');
   }).toArray();
   // Get ad description
-  const decriptionText = $('.offer__description').contents();
-  const description = normalizeText(decriptionText.text());
-  // const main = $('.layout__content').contents();
-  const flatData: IFlatData = { rooms, area, floor, price, description, url, imageUrls };
+  const descriptionText = $('.offer__short-description').contents();
+  const descriptionArr = descriptionText.map((i: number, el: any) => {
+    const rowText = $(el).contents();
+    let title = '';
+    let description = '';
+    rowText.each((i: number, el: any) => {
+      const descriptionRowText = normalizeText($(el).text())
+      if (descriptionRowText) {
+        title ? description = descriptionRowText : title = descriptionRowText;
+      }
+    });
+    const descriptionItem = { title, description };
+    return (descriptionItem.title && descriptionItem.description) ? descriptionItem : null;
+  }).toArray();
+  // Set data
+  const flatData = { area, floor, imageUrls, price, rooms, url: url } as IFlatData;
+  descriptionArr.forEach((item: { title: string, description: string }) => {
+    const { title, description } = item;
+    if (title === 'Город') {
+      const fixedDesc = description.replace(" показать на карте", "");
+      flatData.city = fixedDesc;;
+    } else if (title === 'Тип дома') {
+      flatData.materials = description;
+    } else if (title === 'Год постройки') {
+      flatData.year = description;
+    } else if (title === 'Потолки') {
+      flatData.ceiling = description;
+    } else if (title === 'Бывшее общежитие') {
+      flatData.isFormerDorm = description;
+    }
+  });
   return flatData;
 }
 
+// Get route requires url
+app.get('/parsePage', (req: Request, res: Response) => {
+  const { url } = req.body;
+  let flatData: unknown;
+  try {
+    flatData = parsePage(url);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+  res.status(200).json({ flatData });
+});
+
 const startApp = async () => {
-  console.dir(await parsePage('https://krisha.kz/a/show/683091464'));
+  console.dir(await parsePage('https://krisha.kz/a/show/681684217'));
   app.listen(8080);
   console.log('Listening on port 8080');
 }
