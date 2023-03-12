@@ -85,17 +85,33 @@ const parsePage = async (url: string) => {
   return flatData;
 }
 
+const validateUrl = (url: string) => {
+  const httpsRemoved = url.replace('https://', '')
+  const [domain, a, show, id] = httpsRemoved.split('/');
+  const numId = Number(id);
+  if (domain === 'krisha.kz' && a === 'a' && show === 'show' && typeof (numId) === 'number') {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 // Get route requires url
-app.get('/parsePage', (req: Request, res: Response) => {
+app.get('/parsePage', async (req: Request, res: Response) => {
   const { url } = req.body;
   let flatData: unknown;
+  const validUrl = validateUrl(url);
   try {
-    flatData = parsePage(url);
+    if (!validUrl) {
+      throw new Error('Invalid URL');
+    }
+    flatData = await parsePage(url);
   } catch (e: any) {
     res.status(500).json({ message: e.message });
   }
   res.status(200).json({ flatData });
 });
+
 
 const startApp = async () => {
   console.dir(await parsePage('https://krisha.kz/a/show/681684217'));
