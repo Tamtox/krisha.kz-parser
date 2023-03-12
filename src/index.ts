@@ -1,9 +1,18 @@
 const express = require("express");
 const axios = require('axios');
 const cheerio = require('cheerio');
+var cors = require('cors')
 
 const app = express();
 import { Request, Response } from "express";
+
+
+app.use(cors());
+// Encoders
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+// app.use(express.static(path.join(__dirname, 'public')));
+
 
 // Normalize text
 const normalizeText = (str: string) => {
@@ -97,7 +106,7 @@ const validateUrl = (url: string) => {
 }
 
 // Get route requires url
-app.get('/parsePage', async (req: Request, res: Response) => {
+app.post('/parsePage', async (req: Request, res: Response) => {
   const { url } = req.body;
   let flatData: unknown;
   const validUrl = validateUrl(url);
@@ -114,7 +123,6 @@ app.get('/parsePage', async (req: Request, res: Response) => {
 
 
 const startApp = async () => {
-  console.dir(await parsePage('https://krisha.kz/a/show/681684217'));
   app.listen(8080);
   console.log('Listening on port 8080');
 }
