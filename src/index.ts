@@ -83,6 +83,7 @@ const parsePage = async (url: string) => {
   return flatData;
 }
 
+// Url validation
 const validateUrl = (url: string) => {
   const httpsRemoved = url.replace('https://', '');
   const [domain, a, show, id] = httpsRemoved.split('/');
@@ -95,7 +96,7 @@ const validateUrl = (url: string) => {
 }
 
 
-
+// Run a prompt via inquirer
 const runPrompt = () => {
   return inquirer.prompt({
     type: 'input',
